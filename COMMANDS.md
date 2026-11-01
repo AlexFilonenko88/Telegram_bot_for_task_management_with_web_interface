@@ -1,0 +1,243 @@
+# Команды проекта TaskBot
+
+## Настройка окружения
+
+### Создание виртуального окружения
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# или
+.venv\Scripts\activate  # Windows
+```
+
+### Установка зависимостей
+```bash
+pip install -r taskbot/backend/requirements.txt
+```
+
+### Настройка переменных окружения
+```bash
+cp .env.example .env
+# Отредактировать .env:
+# BOT_TOKEN=your_telegram_bot_token
+# API_URL=http://localhost:8000
+# BOT_SECRET=your_secret_key
+```
+
+## Работа с базой данных
+
+### Создание миграции
+```bash
+cd taskbot/backend
+alembic revision --autogenerate -m "описание миграции"
+```
+
+### Применение миграций
+```bash
+cd taskbot/backend
+alembic upgrade head
+```
+
+### Откат миграции
+```bash
+cd taskbot/backend
+alembic downgrade -1
+```
+
+### Просмотр текущей версии миграции
+```bash
+cd taskbot/backend
+alembic current
+```
+
+### Просмотр истории миграций
+```bash
+cd taskbot/backend
+alembic history
+```
+
+## Запуск сервера
+
+### Запуск FastAPI в режиме разработки
+```bash
+cd taskbot/backend
+uvicorn app.main:app --reload
+```
+
+### Запуск FastAPI в production
+```bash
+cd taskbot/backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+### Запуск Telegram бота
+```bash
+cd taskbot
+python bot/main.py
+```
+
+## Тестирование API
+
+### Запуск сервера для тестов
+```bash
+cd taskbot/backend
+uvicorn app.main:app --reload
+```
+
+### Тестирование через curl
+
+#### Регистрация пользователя
+```bash
+curl -X POST http://localhost:8000/api/users/register \
+  -H "Content-Type: application/json" \
+  -H "X-Bot-Secret: secret-key" \
+  -d '{
+    "telegram_id": 123456789,
+    "username": "testuser",
+    "first_name": "Test"
+  }'
+```
+
+#### Получение списка задач
+```bash
+curl -X GET "http://localhost:8000/api/tasks?user_id=1" \
+  -H "X-Bot-Secret: secret-key"
+```
+
+#### Создание задачи
+```bash
+curl -X POST http://localhost:8000/api/tasks \
+  -H "Content-Type: application/json" \
+  -H "X-Bot-Secret: secret-key" \
+  -d '{
+    "title": "Новая задача",
+    "description": "Описание задачи",
+    "user_id": 1
+  }'
+```
+
+#### Обновление задачи
+```bash
+curl -X PUT http://localhost:8000/api/tasks/1 \
+  -H "Content-Type: application/json" \
+  -H "X-Bot-Secret: secret-key" \
+  -d '{
+    "title": "Обновлённая задача",
+    "is_done": true
+  }'
+```
+
+#### Удаление задачи
+```bash
+curl -X DELETE http://localhost:8000/api/tasks/1 \
+  -H "X-Bot-Secret: secret-key"
+```
+
+#### Отметить задачу выполненной
+```bash
+curl -X PATCH http://localhost:8000/api/tasks/1/complete \
+  -H "X-Bot-Secret: secret-key"
+```
+
+## Работа с Git
+
+### Добавление всех изменений
+```bash
+git add -A
+```
+
+### Создание коммита
+```bash
+git commit -m "описание изменений"
+```
+
+### Отправка изменений в удалённый репозиторий
+```bash
+git push origin master
+```
+
+### Просмотр статуса
+```bash
+git status
+```
+
+### Просмотр изменений
+```bash
+git diff
+```
+
+## Полезные команды
+
+### Просмотр установленных пакетов
+```bash
+pip list
+```
+
+### Обновление pip
+```bash
+pip install --upgrade pip
+```
+
+### Очистка кэша pip
+```bash
+pip cache purge
+```
+
+### Удаление виртуального окружения
+```bash
+deactivate
+rm -rf .venv
+```
+
+### Сброс базы данных (внимание: удаляет все данные!)
+```bash
+rm taskbot/backend/tasks.db
+cd taskbot/backend
+alembic downgrade base
+alembic upgrade head
+```
+
+## Документация API
+
+### Запуск Swagger UI
+После запуска сервера откройте в браузере:
+```
+http://localhost:8000/docs
+```
+
+### Запуск ReDoc
+```
+http://localhost:8000/redoc
+```
+
+## Логи и отладка
+
+### Запуск с verbose логами
+```bash
+cd taskbot/backend
+uvicorn app.main:app --reload --log-level debug
+```
+
+### Просмотр логов бота
+```bash
+cd taskbot
+python bot/main.py
+# Логи выводятся в stdout
+```
+
+## Docker (в планах)
+
+### Сборка образа
+```bash
+docker build -t taskbot .
+```
+
+### Запуск контейнера
+```bash
+docker run -p 8000:8000 taskbot
+```
+
+### Запуск с docker-compose
+```bash
+docker-compose up
+```
