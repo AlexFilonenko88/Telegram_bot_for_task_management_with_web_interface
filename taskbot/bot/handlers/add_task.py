@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
 
-from bot.config import API_URL, BOT_SECRET
+import config
 
 
 class AddTaskStates(StatesGroup):
@@ -44,13 +44,13 @@ async def process_description(message: Message, state: FSMContext):
         user_id = message.from_user.id
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{API_URL}/api/tasks",
+                f"{config.API_URL}/api/tasks",
                 json={
                     "title": title,
                     "description": description,
                     "user_id": user_id
                 },
-                headers={"X-Bot-Secret": BOT_SECRET}
+                headers={"X-Bot-Secret": config.BOT_SECRET}
             )
             response.raise_for_status()
             result = response.json()
