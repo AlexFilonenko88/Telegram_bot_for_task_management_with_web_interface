@@ -82,9 +82,9 @@ async def cmd_done(message: types.Message):
             )
             response.raise_for_status()
             result = response.json()
-            await message.answer(f"✅ Задача <b>{result['title']}</b> отмечена как выполненная!", parse_mode="HTML")
+            await message.answer(f"✅ Задача отмечена как выполненная!")
     except (ValueError, IndexError):
-        await message.answer("❌ Неверный формат команды. Используйте: /done <id>")
+        await message.answer("❌ Неверный формат команды. Используйте: /done [id]")
     except Exception as e:
         await message.answer(f"❌ Ошибка при отметке задачи: {str(e)}")
 
@@ -102,7 +102,7 @@ async def cmd_delete(message: types.Message):
             response.raise_for_status()
             await message.answer(f"🗑 Задача с ID {task_id} удалена.")
     except (ValueError, IndexError):
-        await message.answer("❌ Неверный формат команды. Используйте: /delete <id>")
+        await message.answer("❌ Неверный формат команды. Используйте: /delete [id]")
     except Exception as e:
         await message.answer(f"❌ Ошибка при удалении задачи: {str(e)}")
 
@@ -127,11 +127,11 @@ async def cmd_stats(message: types.Message):
 
             text = (
                 f"📊 Ваша статистика:\n\n"
-                f"Всего задач: <b>{total}</b>\n"
-                f"✅ Выполнено: <b>{done}</b>\n"
-                f"⏳ В работе: <b>{active}</b>\n"
-                f"📈 Процент выполнения: <b>{percentage:.1f}%</b>"
+                f"Всего задач: {total}\n"
+                f"✅ Выполнено: {done}\n"
+                f"⏳ В работе: {active}\n"
+                f"📈 Процент выполнения: {percentage:.1f}%"
             )
-            await message.answer(text, parse_mode="HTML")
+            await message.answer(text)
     except Exception as e:
         await message.answer(f"❌ Ошибка при получении статистики: {str(e)}")
