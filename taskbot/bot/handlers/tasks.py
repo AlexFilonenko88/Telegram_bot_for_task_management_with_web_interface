@@ -69,10 +69,21 @@ async def cmd_list_all(message: types.Message):
         await message.answer(f"❌ Ошибка при получении списка задач: {str(e)}")
 
 
-@router.message(F.text.startswith("/done "))
+@router.message(F.text.startswith("/done"))
 async def cmd_done(message: types.Message):
     try:
-        task_id = int(message.text.split()[1])
+        # Extract task ID from message (handles /done 1, /done[1], /done1)
+        text = message.text
+        # Remove /done prefix
+        task_part = text[5:].strip()
+        # Remove brackets if present
+        task_part = task_part.replace("[", "").replace("]", "")
+        
+        if not task_part:
+            await message.answer("❌ Укажите ID задачи. Используйте: /done [id]")
+            return
+            
+        task_id = int(task_part)
         user_id = message.from_user.id
 
         async with httpx.AsyncClient() as client:
@@ -89,10 +100,21 @@ async def cmd_done(message: types.Message):
         await message.answer(f"❌ Ошибка при отметке задачи: {str(e)}")
 
 
-@router.message(F.text.startswith("/delete "))
+@router.message(F.text.startswith("/delete"))
 async def cmd_delete(message: types.Message):
     try:
-        task_id = int(message.text.split()[1])
+        # Extract task ID from message (handles /delete 1, /delete[1], /delete1)
+        text = message.text
+        # Remove /delete prefix
+        task_part = text[7:].strip()
+        # Remove brackets if present
+        task_part = task_part.replace("[", "").replace("]", "")
+        
+        if not task_part:
+            await message.answer("❌ Укажите ID задачи. Используйте: /delete [id]")
+            return
+            
+        task_id = int(task_part)
 
         async with httpx.AsyncClient() as client:
             response = await client.delete(
