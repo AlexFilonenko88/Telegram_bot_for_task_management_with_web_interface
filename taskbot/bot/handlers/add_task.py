@@ -1,9 +1,10 @@
+import httpx
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
 
-from bot.api_client import APIClient
+from bot.config import API_URL, BOT_SECRET
 
 
 class AddTaskStates(StatesGroup):
@@ -12,7 +13,6 @@ class AddTaskStates(StatesGroup):
 
 
 router = Router()
-api_client = APIClient()
 
 
 @router.message(F.text == "/add")
@@ -42,7 +42,18 @@ async def process_description(message: Message, state: FSMContext):
 
     try:
         user_id = message.from_user.id
-        result = await api_client.create_task(title, description, user_id)
-        await message.answer(f"✅ Задача создана:\n\n{result['title']}")
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{API_URL}/api/tasks",
+                json={
+                    "title": title,
+                    "description": description,
+                    "user_id": user_id
+                },
+                headers={"X-Bot-Secret": BOT_SECRET}
+            )
+            response.raise_for_status()
+            result = response.json()
+            await message.answer(f"✅ Задача создана:\n\n{result['title']}")
     except Exception as e:
         await message.answer(f"❌ Ошибка при создании задачи: {str(e)}")
