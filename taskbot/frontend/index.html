@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskBot Dashboard</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 TaskBot Dashboard</h1>
+            <div class="user-input">
+                <label for="user-id">Введите ваш Telegram ID:</label>
+                <input type="number" id="user-id" placeholder="123456789" />
+                <button id="load-data">Загрузить данные</button>
+            </div>
+        </header>
+
+        <div id="stats-section" class="hidden">
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-tasks">0</div>
+                    <div class="stat-label">Всего задач</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="done-tasks">0</div>
+                    <div class="stat-label">Выполнено</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="active-tasks">0</div>
+                    <div class="stat-label">В работе</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="percentage">0%</div>
+                    <div class="stat-label">Процент выполнения</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2>📈 Выполнение задач за неделю</h2>
+                <canvas id="weekly-chart"></canvas>
+            </div>
+
+            <div class="tasks-section">
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">Все</button>
+                    <button class="filter-btn" data-filter="active">Активные</button>
+                    <button class="filter-btn" data-filter="done">Выполненные</button>
+                </div>
+                <div id="tasks-list"></div>
+            </div>
+        </div>
+
+        <div id="error-message" class="error hidden"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="static/app.js"></script>
+</body>
+</html>
