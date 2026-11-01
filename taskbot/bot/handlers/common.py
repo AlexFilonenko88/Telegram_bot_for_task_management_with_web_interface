@@ -19,14 +19,13 @@ async def cmd_start(message: types.Message):
 async def cmd_help(message: types.Message):
     help_text = (
         "📋 Справка по командам:\n\n"
-        "/add — добавить новую задачу через диалог\n"
         "/start — приветствие\n"
-        "/help — эта справка\n\n"
-        "Команды в разработке:\n"
+        "/help — эта справка\n"
+        "/add — добавить новую задачу через диалог\n"
         "/list — список активных задач\n"
         "/list all — все задачи\n"
-        "/done <id> — отметить выполненной\n"
+        "/done <id> — отметить задачу выполненной\n"
         "/delete <id> — удалить задачу\n"
-        "/stats — статистика"
+        "/stats — статистика выполнения"
     )
     await message.answer(help_text)
