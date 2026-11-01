@@ -20,7 +20,7 @@ async def cmd_category_help(message: Message):
         "📁 Управление категориями:\n\n"
         "/category_add - Создать новую категорию\n"
         "/category_list - Показать список категорий\n"
-        "/category_delete <id> - Удалить категорию"
+        "/category_delete [id] - Удалить категорию"
     )
 
 

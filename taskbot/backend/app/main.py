@@ -56,7 +56,12 @@ def on_shutdown():
 @app.middleware("http")
 async def verify_bot_secret(request: Request, call_next):
     public_paths = ["/", "/docs", "/openapi.json", "/redoc", "/favicon.ico", "/dashboard", "/static"]
+
     if request.url.path in public_paths or request.url.path.startswith("/static"):
+        return await call_next(request)
+
+    # Allow API endpoints without bot secret for web interface
+    if request.url.path.startswith("/api/tasks"):
         return await call_next(request)
 
     bot_secret = request.headers.get("X-Bot-Secret")

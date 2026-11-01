@@ -20,7 +20,7 @@ async def cmd_tag_help(message: Message):
         "🏷️ Управление тегами:\n\n"
         "/tag_add - Создать новый тег\n"
         "/tag_list - Показать список тегов\n"
-        "/tag_delete <id> - Удалить тег"
+        "/tag_delete [id] - Удалить тег"
     )
 
 
