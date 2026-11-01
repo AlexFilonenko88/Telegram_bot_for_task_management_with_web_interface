@@ -1,176 +1,176 @@
-# Implementation Summary
+# Сводка реализации
 
-## Features Implemented
+## Реализованные функции
 
-### 1. Categories and Tags for Tasks
-- **Database Models**: Added `Category` and `Tag` models with many-to-many relationship to tasks
-- **API Endpoints**:
-  - `GET /api/categories` - List user's categories
-  - `POST /api/categories` - Create new category
-  - `DELETE /api/categories/{id}` - Delete category
-  - `GET /api/tags` - List user's tags
-  - `POST /api/tags` - Create new tag
-  - `DELETE /api/tags/{id}` - Delete tag
-- **Bot Commands**:
-  - `/category` - Category management help
-  - `/category_add` - Create category
-  - `/category_list` - List categories
-  - `/category_delete <id>` - Delete category
-  - `/tag` - Tag management help
-  - `/tag_add` - Create tag
-  - `/tag_list` - List tags
-  - `/tag_delete <id>` - Delete tag
+### 1. Категории и теги для задач
+- **Модели базы данных**: Добавлены модели `Category` и `Tag` с отношением many-to-many к задачам
+- **API endpoints**:
+  - `GET /api/categories` - Список категорий пользователя
+  - `POST /api/categories` - Создать новую категорию
+  - `DELETE /api/categories/{id}` - Удалить категорию
+  - `GET /api/tags` - Список тегов пользователя
+  - `POST /api/tags` - Создать новый тег
+  - `DELETE /api/tags/{id}` - Удалить тег
+- **Команды бота**:
+  - `/category` - Справка по управлению категориями
+  - `/category_add` - Создать категорию
+  - `/category_list` - Показать список категорий
+  - `/category_delete [id]` - Удалить категорию
+  - `/tag` - Справка по управлению тегами
+  - `/tag_add` - Создать тег
+  - `/tag_list` - Показать список тегов
+  - `/tag_delete [id]` - Удалить тег
 
-### 2. Task Priorities
-- **Database**: Added `priority` field to Task model (values: low, medium, high)
-- **Schemas**: Updated TaskCreate and TaskUpdate to include priority
-- **Bot**: Enhanced `/add` command to ask for priority during task creation
-- **Display**: Priority shown with emoji indicators (🔴 high, 🟡 medium, 🟢 low)
+### 2. Приоритеты задач
+- **База данных**: Добавлено поле `priority` в модель Task (значения: low, medium, high)
+- **Схемы**: Обновлены TaskCreate и TaskUpdate для включения приоритета
+- **Бот**: Улучшена команда `/add` для запроса приоритета при создании задачи
+- **Отображение**: Приоритет показывается с эмодзи-индикаторами (🔴 высокий, 🟡 средний, 🟢 низкий)
 
-### 3. Task Deadlines
-- **Database**: Added `deadline` field to Task model (datetime)
-- **Schemas**: Updated TaskCreate and TaskUpdate to include deadline
-- **Bot**: Enhanced `/add` command to ask for deadline in YYYY-MM-DD HH:MM format
-- **Display**: Deadline shown in task details
+### 3. Дедлайны задач
+- **База данных**: Добавлено поле `deadline` в модель Task (datetime)
+- **Схемы**: Обновлены TaskCreate и TaskUpdate для включения дедлайна
+- **Бот**: Улучшена команда `/add` для запроса дедлайна в формате YYYY-MM-DD HH:MM
+- **Отображение**: Дедлайн показывается в деталях задачи
 
-### 4. Notification System and Reminders
-- **Scheduler**: Implemented APScheduler for background task checking
-- **Logic**: Checks every 30 minutes for tasks with deadlines within 24 hours
-- **Notifications**: Sends Telegram messages to users with upcoming deadlines
-- **Tracking**: Uses `reminder_sent` flag to avoid duplicate reminders
-- **Implementation**: Created `app/notifications.py` with scheduler integration
-- **Auto-start**: Scheduler starts with FastAPI application
+### 4. Система уведомлений и напоминаний
+- **Планировщик**: Реализован APScheduler для фонового поиска задач
+- **Логика**: Проверка каждые 30 минут задач с дедлайнами в течение 24 часов
+- **Уведомления**: Отправка сообщений в Telegram пользователям с приближающимися дедлайнами
+- **Отслеживание**: Использование флага `reminder_sent` для избежания дубликатов
+- **Реализация**: Создан `app/notifications.py` с интеграцией планировщика
+- **Автозапуск**: Планировщик запускается вместе с приложением FastAPI
 
-### 5. Webhook Support for Telegram Bot
-- **Configuration**: Added `USE_WEBHOOK` and `WEBHOOK_URL` environment variables
-- **Implementation**: Created `app/webhook.py` for webhook handling
-- **Bot**: Updated bot main to support both polling (default) and webhook modes
-- **Fallback**: Currently falls back to polling if webhook not fully configured
-- **Note**: Full webhook implementation requires proper ASGI server setup
+### 5. Поддержка Webhook для Telegram бота
+- **Конфигурация**: Добавлены переменные окружения `USE_WEBHOOK` и `WEBHOOK_URL`
+- **Реализация**: Создан `app/webhook.py` для обработки webhook
+- **Бот**: Обновлён bot main для поддержки режимов polling (по умолчанию) и webhook
+- **Откат**: В настоящее время используется polling, если webhook не полностью настроен
+- **Примечание**: Полная реализация webhook требует правильной настройки ASGI сервера
 
-## Database Changes
+## Изменения в базе данных
 
-### Migration: `add_categories_tags_priorities_deadlines`
-- Created `categories` table
-- Created `tags` table
-- Created `task_tags` junction table (many-to-many)
-- Added columns to `tasks` table:
+### Миграция: `add_categories_tags_priorities_deadlines`
+- Создана таблица `categories`
+- Создана таблица `tags`
+- Создана соединительная таблица `task_tags` (many-to-many)
+- Добавлены колонки в таблицу `tasks`:
   - `priority` (VARCHAR(20), nullable)
   - `deadline` (DATETIME, nullable)
   - `category_id` (INTEGER, FK to categories, nullable)
   - `reminder_sent` (BOOLEAN, default False)
   - `completed_at` (DATETIME, nullable)
 
-## API Changes
+## Изменения в API
 
-### Task Endpoints Enhanced
-- `POST /api/tasks` - Now accepts priority, deadline, category_id, and tag_ids
-- `PUT /api/tasks/{id}` - Can update all new fields
-- Response includes category and tags objects
+### Улучшенные endpoints задач
+- `POST /api/tasks` - Теперь принимает priority, deadline, category_id и tag_ids
+- `PUT /api/tasks/{id}` - Может обновлять все новые поля
+- Ответ включает объекты category и tags
 
-### New Category Endpoints
+### Новые endpoints категорий
 - `GET /api/categories?user_id={id}`
 - `POST /api/categories`
 - `DELETE /api/categories/{id}`
 
-### New Tag Endpoints
+### Новые endpoints тегов
 - `GET /api/tags?user_id={id}`
 - `POST /api/tags`
 - `DELETE /api/tags/{id}`
 
-## Bot Handler Changes
+## Изменения в обработчиках бота
 
-### Enhanced `/add` Command
-Now prompts for:
-1. Title (required)
-2. Description (optional, /skip)
-3. Priority (optional, /skip)
-4. Deadline (optional, /skip)
-5. Category ID (optional, /skip)
-6. Tag IDs (optional, /skip, comma-separated)
+### Улучшенная команда `/add`
+Теперь запрашивает:
+1. Название (обязательно)
+2. Описание (опционально, /skip)
+3. Приоритет (опционально, /skip)
+4. Дедлайн (опционально, /skip)
+5. ID категории (опционально, /skip)
+6. ID тегов (опционально, /skip, через запятую)
 
-### New Handlers
-- `categories.py` - Category management commands
-- `tags.py` - Tag management commands
+### Новые обработчики
+- `categories.py` - Команды управления категориями
+- `tags.py` - Команды управления тегами
 
-### Updated Help Commands
-- `/start` and `/help` now include category and tag commands
+### Обновлённые команды справки
+- `/start` и `/help` теперь включают команды категорий и тегов
 
-## Configuration Changes
+## Изменения конфигурации
 
-### Environment Variables
-Added to `.env.example`:
+### Переменные окружения
+Добавлено в `.env.example`:
 ```
 USE_WEBHOOK=false
 WEBHOOK_URL=https://your-domain.com
 ```
 
-### Dependencies
-Added to `requirements.txt`:
-- `apscheduler==3.10.4` (for notification scheduler)
+### Зависимости
+Добавлено в `requirements.txt`:
+- `apscheduler==3.10.4` (для планировщика уведомлений)
 
-## Files Modified/Created
+## Изменённые/созданные файлы
 
-### Modified Files
-- `taskbot/backend/app/models.py` - Added Category, Tag models, updated Task model
-- `taskbot/backend/app/schemas/task.py` - Added Category/Tag schemas, updated Task schemas
-- `taskbot/backend/app/crud.py` - Added Category/Tag CRUD, reminder functions
-- `taskbot/backend/app/routers/tasks.py` - Added category/tag endpoints
-- `taskbot/backend/app/main.py` - Added notification scheduler startup
-- `taskbot/backend/requirements.txt` - Added APScheduler
-- `taskbot/bot/handlers/add_task.py` - Enhanced task creation flow
-- `taskbot/bot/handlers/common.py` - Updated help messages
-- `taskbot/bot/main.py` - Added webhook support, new handlers
-- `taskbot/bot/handlers/__init__.py` - Added new handler imports
-- `.env.example` - Added webhook configuration
+### Изменённые файлы
+- `taskbot/backend/app/models.py` - Добавлены модели Category, Tag, обновлена модель Task
+- `taskbot/backend/app/schemas/task.py` - Добавлены схемы Category/Tag, обновлены схемы Task
+- `taskbot/backend/app/crud.py` - Добавлены CRUD для категорий/тегов, функции напоминаний
+- `taskbot/backend/app/routers/tasks.py` - Добавлены endpoints категорий/тегов
+- `taskbot/backend/app/main.py` - Добавлен запуск планировщика уведомлений
+- `taskbot/backend/requirements.txt` - Добавлен APScheduler
+- `taskbot/bot/handlers/add_task.py` - Улучшен процесс создания задач
+- `taskbot/bot/handlers/common.py` - Обновлены сообщения справки
+- `taskbot/bot/main.py` - Добавлена поддержка webhook, новые обработчики
+- `taskbot/bot/handlers/__init__.py` - Добавлены импорты новых обработчиков
+- `.env.example` - Добавлена конфигурация webhook
 
-### New Files
-- `taskbot/backend/app/notifications.py` - Notification scheduler
-- `taskbot/backend/app/webhook.py` - Webhook handling
-- `taskbot/bot/handlers/categories.py` - Category commands
-- `taskbot/bot/handlers/tags.py` - Tag commands
-- `taskbot/backend/alembic/versions/20261101_1310_b39eac368286_add_categories_tags_priorities_deadlines.py` - Database migration
+### Новые файлы
+- `taskbot/backend/app/notifications.py` - Планировщик уведомлений
+- `taskbot/backend/app/webhook.py` - Обработка webhook
+- `taskbot/bot/handlers/categories.py` - Команды категорий
+- `taskbot/bot/handlers/tags.py` - Команды тегов
+- `taskbot/backend/alembic/versions/20261101_1310_b39eac368286_add_categories_tags_priorities_deadlines.py` - Миграция базы данных
 
-## Testing Recommendations
+## Рекомендации по тестированию
 
-1. **Test Category Management**
-   - Create categories via `/category_add`
-   - List categories via `/category_list`
-   - Delete categories via `/category_delete`
+1. **Тестирование управления категориями**
+   - Создать категории через `/category_add`
+   - Показать список категорий через `/category_list`
+   - Удалить категории через `/category_delete`
 
-2. **Test Tag Management**
-   - Create tags via `/tag_add`
-   - List tags via `/tag_list`
-   - Delete tags via `/tag_delete`
+2. **Тестирование управления тегами**
+   - Создать теги через `/tag_add`
+   - Показать список тегов через `/tag_list`
+   - Удалить теги через `/tag_delete`
 
-3. **Test Enhanced Task Creation**
-   - Create task with priority via `/add`
-   - Create task with deadline via `/add`
-   - Create task with category via `/add`
-   - Create task with tags via `/add`
-   - Create task with all fields via `/add`
+3. **Тестирование улучшенного создания задач**
+   - Создать задачу с приоритетом через `/add`
+   - Создать задачу с дедлайном через `/add`
+   - Создать задачу с категорией через `/add`
+   - Создать задачу с тегами через `/add`
+   - Создать задачу со всеми полями через `/add`
 
-4. **Test Notification System**
-   - Create task with deadline within 24 hours
-   - Wait for scheduler to check (every 30 minutes)
-   - Verify reminder message received in Telegram
+4. **Тестирование системы уведомлений**
+   - Создать задачу с дедлайном в течение 24 часов
+   - Подождать проверки планировщиком (каждые 30 минут)
+   - Проверить получение напоминания в Telegram
 
-5. **Test API Endpoints**
-   - Test category CRUD via API
-   - Test tag CRUD via API
-   - Test task creation with new fields via API
-   - Verify task responses include category and tags
+5. **Тестирование API endpoints**
+   - Протестировать CRUD категорий через API
+   - Протестировать CRUD тегов через API
+   - Протестировать создание задач с новыми полями через API
+   - Проверить, что ответы задач включают category и tags
 
-6. **Test Webhook Mode** (optional)
-   - Set `USE_WEBHOOK=true` and provide `WEBHOOK_URL`
-   - Configure webhook endpoint
-   - Test webhook updates
+6. **Тестирование режима Webhook** (опционально)
+   - Установить `USE_WEBHOOK=true` и указать `WEBHOOK_URL`
+   - Настроить endpoint webhook
+   - Протестировать обновления webhook
 
-## Notes
+## Примечания
 
-- Polling mode remains the default and primary mode of operation
-- Webhook support is implemented but requires proper ASGI server configuration for production use
-- Notifications are sent 24 hours before deadline and only once per task
-- Categories and tags are user-specific (each user has their own)
-- Tags have many-to-many relationship with tasks
-- Categories have one-to-many relationship with tasks
+- Режим polling остаётся основным режимом работы по умолчанию
+- Поддержка webhook реализована, но требует правильной настройки ASGI сервера для продакшн-использования
+- Уведомления отправляются за 24 часа до дедлайна и только один раз для каждой задачи
+- Категории и теги привязаны к пользователям (каждый пользователь имеет свои)
+- Теги имеют отношение many-to-many с задачами
+- Категории имеют отношение one-to-many с задачами
