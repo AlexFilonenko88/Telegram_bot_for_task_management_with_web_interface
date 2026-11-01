@@ -34,7 +34,8 @@ def on_startup():
 
 @app.middleware("http")
 async def verify_bot_secret(request: Request, call_next):
-    if request.url.path in ["/", "/docs", "/openapi.json"]:
+    public_paths = ["/", "/docs", "/openapi.json", "/favicon.ico"]
+    if request.url.path in public_paths:
         return await call_next(request)
 
     bot_secret = request.headers.get("X-Bot-Secret")
