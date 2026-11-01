@@ -6,7 +6,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 import config
-from handlers import add_task
+from handlers import add_task, common
 
 
 async def main():
@@ -18,6 +18,7 @@ async def main():
     )
     dp = Dispatcher()
 
+    dp.include_router(common.router)
     dp.include_router(add_task.router)
 
     await dp.start_polling(bot)
