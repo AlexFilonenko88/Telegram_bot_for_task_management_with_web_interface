@@ -1,12 +1,17 @@
 import os
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.database import init_db
-from app.routers import tasks, users
+from app.routers import tasks, users, teams
+from app import notifications
 
 
 BOT_SECRET = os.getenv("BOT_SECRET", "secret-key")
+USE_WEBHOOK = os.getenv("USE_WEBHOOK", "false").lower() == "true"
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
 
 
 app = FastAPI(
@@ -24,18 +29,34 @@ app.add_middleware(
 )
 
 app.include_router(tasks.router)
+app.include_router(tasks.categories_router)
+app.include_router(tasks.tags_router)
 app.include_router(users.router)
+app.include_router(teams.router)
+
+app.mount("/static", StaticFiles(directory="../frontend/static"), name="static")
+
+
+@app.get("/dashboard")
+async def serve_dashboard():
+    return FileResponse("../frontend/index.html")
 
 
 @app.on_event("startup")
 def on_startup():
     init_db()
+    notifications.start_scheduler()
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    notifications.stop_scheduler()
 
 
 @app.middleware("http")
 async def verify_bot_secret(request: Request, call_next):
-    public_paths = ["/", "/docs", "/openapi.json", "/favicon.ico"]
-    if request.url.path in public_paths:
+    public_paths = ["/", "/docs", "/openapi.json", "/redoc", "/favicon.ico", "/dashboard", "/static"]
+    if request.url.path in public_paths or request.url.path.startswith("/static"):
         return await call_next(request)
 
     bot_secret = request.headers.get("X-Bot-Secret")
