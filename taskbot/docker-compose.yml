@@ -1,0 +1,74 @@
+# =============================================================================
+# docker-compose.yml — production-деплой TaskBot API с PostgreSQL.
+#
+# Запуск (из папки taskbot/):
+#   docker compose up -d --build
+# Остановка (данные БД остаются в томе pgdata):
+#   docker compose down
+#
+# Секреты и параметры берутся из .env в корне репозитория (env_file: ../.env):
+#   POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD — креды PostgreSQL,
+#   DATABASE_URL — строка подключения приложения (хост БД = имя сервиса "db"),
+#   BOT_SECRET — секрет авторизации бота в API.
+# =============================================================================
+
+services:
+
+  # --- Приложение: FastAPI (образ собирается из нашего Dockerfile) -----------
+  app:
+    build:
+      context: .              # контекст — taskbot/ (backend + frontend/static)
+      dockerfile: Dockerfile
+    container_name: taskbot-app
+    # Секреты передаются в контейнер файлом .env (BOT_SECRET, DATABASE_URL...).
+    env_file:
+      - ../.env
+    # Порт наружу: дашборд http://localhost:8000, Swagger /docs
+    ports:
+      - "8000:8000"
+    # restart: always — контейнер поднимается заново после падения
+    # и автоматически при старте демона Docker (перезагрузка сервера).
+    restart: always
+    # app стартует только когда БД реально готова принимать подключения:
+    # depends_on с condition: service_healthy ждёт зелёный healthcheck у db
+    # (простого depends_on недостаточно — он ждёт лишь запуск контейнера).
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tasknet
+
+  # --- База данных: PostgreSQL 15 --------------------------------------------
+  db:
+    image: postgres:15
+    container_name: taskbot-db
+    # Образ postgres сам читает POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
+    # из окружения — они приходят из ../.env через env_file.
+    env_file:
+      - ../.env
+    # Персистентность: данные живут в именованном томе pgdata, а не в слое
+    # контейнера — переживают пересоздание контейнера и docker compose down.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # HEALTHCHECK: pg_isready проверяет готовность СУБД принимать подключения.
+    # $${...} — экранированный $: переменные раскрываются ВНУТРИ контейнера db
+    # (где POSTGRES_USER/POSTGRES_DB уже установлены из env_file),
+    # а не при парсинге compose-файла.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-taskbot} -d $${POSTGRES_DB:-taskbot}"]
+      interval: 5s        # проверка каждые 5 секунд
+      timeout: 5s         # ответ дольше 5с = проверка не пройдена
+      retries: 10         # 10 неудач подряд => unhealthy
+      start_period: 10s   # время на первичную инициализацию кластера БД
+    restart: always
+    networks:
+      - tasknet
+
+# --- Именованные сущности ------------------------------------------------------
+
+volumes:
+  pgdata:   # том с данными PostgreSQL
+
+networks:
+  tasknet:  # общая сеть: app видит db по имени сервиса "db"
+    driver: bridge

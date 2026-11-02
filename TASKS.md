@@ -206,3 +206,7 @@ taskbot/
 **12. Dockerfile**
 Напиши production-ready Dockerfile для FastAPI приложения. 
 Требования: Python 3.11, multi-stage build для уменьшения размера образа, не запускать от root (создай пользователя appuser), скопировать только нужные файлы, установить зависимости из requirements.txt, запустить через uvicorn на порту 8000, добавить HEALTHCHECK. Добавь подробные комментарии.
+
+**13.Docker-compose**
+Напиши docker-compose.yml для production-деплоя FastAPI приложения с PostgreSQL. 
+Нужно: сервис app (наш FastAPI), сервис db (PostgreSQL 15), credentials через .env файл, volumes для персистентности данных БД, restart: always для автоматического перезапуска, healthcheck для db чтобы app стартовал только после готовности БД, сеть между контейнерами. Также отредактируй пример .env.example файла.
