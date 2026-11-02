@@ -203,3 +203,6 @@ taskbot/
 
 
 
+**12. Dockerfile**
+Напиши production-ready Dockerfile для FastAPI приложения. 
+Требования: Python 3.11, multi-stage build для уменьшения размера образа, не запускать от root (создай пользователя appuser), скопировать только нужные файлы, установить зависимости из requirements.txt, запустить через uvicorn на порту 8000, добавить HEALTHCHECK. Добавь подробные комментарии.
