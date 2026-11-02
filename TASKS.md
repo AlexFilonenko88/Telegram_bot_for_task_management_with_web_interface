@@ -207,6 +207,153 @@ taskbot/
 Напиши production-ready Dockerfile для FastAPI приложения. 
 Требования: Python 3.11, multi-stage build для уменьшения размера образа, не запускать от root (создай пользователя appuser), скопировать только нужные файлы, установить зависимости из requirements.txt, запустить через uvicorn на порту 8000, добавить HEALTHCHECK. Добавь подробные комментарии.
 
+
 **13.Docker-compose**
 Напиши docker-compose.yml для production-деплоя FastAPI приложения с PostgreSQL. 
 Нужно: сервис app (наш FastAPI), сервис db (PostgreSQL 15), credentials через .env файл, volumes для персистентности данных БД, restart: always для автоматического перезапуска, healthcheck для db чтобы app стартовал только после готовности БД, сеть между контейнерами. Также отредактируй пример .env.example файла.
+
+
+**14. Nginx: reverse proxy + HTTPS через Certbot**
+Напиши конфигурацию Nginx для production-деплоя. Домен: myapp.com. 
+Приложение работает на localhost:8000. Требования: редирект HTTP → HTTPS, заголовки безопасности (HSTS, X-Frame-Options, X-Content-Type-Options), gzip-сжатие, проксирование WebSocket, правильные заголовки proxy (X-Real-IP, X-Forwarded-For), лимиты запросов. 
+Место под сертификаты Certbot.
+
+
+**15.Systemd: автозапуск при перезагрузке сервера**
+Напиши systemd .service файл для автозапуска docker compose при загрузке Ubuntu-сервера. 
+Приложение находится в /home/deploy/myapp. 
+Должен запускаться после docker.service, перезапускаться при сбое, логировать через journald. 
+Также напиши команды для включения и проверки сервиса.
+
+
+**16.GitHub Actions: автодеплой при push в main**
+Напиши GitHub Actions workflow для автодеплоя FastAPI приложения на VPS при push в ветку main. 
+Шаги: прогнать pytest, собрать Docker-образ и запушить в GitHub Container Registry (ghcr.io), подключиться к серверу по SSH (credentials из secrets), выполнить docker compose pull + up --force-recreate. 
+Секреты: SSH_HOST, SSH_USER, SSH_PRIVATE_KEY, SSH_PORT. Добавь step для проверки healthcheck после деплоя.
+
+
+**17. Централизованный сбор логов**
+Настрой централизованный сбор логов для моего Docker Compose проекта. 
+У меня несколько контейнеров (backend, nginx, celery). Хочу смотреть все логи в одном месте. Добавь Loki и Promtail в docker-compose.yml. 
+Покажи как подключить к Grafana.
+
+
+**18. Grafana + Prometheus: метрики сервера**
+Создай docker-compose конфиг для мониторинга сервера: Prometheus + node-exporter + Grafana. 
+Prometheus должен собирать метрики с node-exporter каждые 15 секунд. 
+Grafana открывается на порту 3000. Добавь volume для данных Prometheus и Grafana чтобы они сохранялись после перезапуска. 
+Также добавь prometheus.yml с настройкой scrape для node-exporter. Grafana должна автоматически подключаться к Prometheus как datasource.
+
+**19. Backup базы данных: автоматизируем через cron**
+Пример:
+Скрипт backup.sh — создаём файл на сервере:
+
+#!/bin/bash
+
+# backup.sh — автоматический бэкап PostgreSQL
+
+# Настройки — заменить на свои
+DB_NAME="myproject_db"
+DB_USER="postgres"
+BACKUP_DIR="/var/backups/postgres"
+DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_${DATE}.sql.gz"
+# Сколько дней хранить бэкапы
+KEEP_DAYS=7
+
+# Создаём директорию если не существует
+mkdir -p "$BACKUP_DIR"
+
+# Создаём бэкап и сжимаем
+pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$BACKUP_FILE"
+
+# Проверяем успешность
+if [ $? -eq 0 ]; then
+    echo "$(date): Backup created: $BACKUP_FILE"
+else
+    echo "$(date): ERROR — backup failed!" >&2
+    exit 1
+fi
+
+# Удаляем старые бэкапы (старше KEEP_DAYS дней)
+find "$BACKUP_DIR" -name "*.sql.gz" -mtime +$KEEP_DAYS -delete
+echo "$(date): Old backups cleaned up (older than $KEEP_DAYS days)"Скопировать
+Устанавливаем права и добавляем в crontab:
+
+# Делаем скрипт исполняемым
+chmod +x /opt/backup.sh
+
+# Открываем crontab для редактирования
+crontab -e
+
+# Добавляем задачу — запуск каждую ночь в 3:00
+0 3 * * * /opt/backup.sh >> /var/log/backup.log 2>&1
+
+**Если PostgreSQL в Docker — скрипт немного другой:**
+
+#!/bin/bash
+
+# Бэкап PostgreSQL из Docker-контейнера
+
+CONTAINER="postgres"           # имя контейнера
+DB_NAME="myproject_db"
+DB_USER="postgres"
+BACKUP_DIR="/var/backups/postgres"
+DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_${DATE}.sql.gz"
+
+mkdir -p "$BACKUP_DIR"
+
+# pg_dump запускается внутри контейнера
+docker exec "$CONTAINER" pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$BACKUP_FILE"
+
+if [ $? -eq 0 ]; then
+    echo "$(date): OK — $BACKUP_FILE"
+else
+    echo "$(date): FAIL" >&2
+fi
+
+# Чистка старых бэкапов
+find "$BACKUP_DIR" -name "*.sql.gz" -mtime +7 -deleteСкопировать
+Проверь что бэкап работает:
+Запусти скрипт вручную: bash /opt/backup.sh. Убедись что файл создался в /var/backups/postgres/ и не пустой: ls -lh /var/backups/postgres/. Также проверь что восстановление работает на тестовой БД.
+
+**Если есть внешнее хранилище**
+Отправка бэкапа в S3-совместимое хранилище через rclone:
+
+# Установка rclone
+curl https://rclone.org/install.sh | sudo bash
+
+# Настройка (интерактивно)
+rclone config
+
+# Копируем бэкап в облако после создания (добавить в backup.sh)
+rclone copy "$BACKUP_FILE" remote:my-backups-bucket/postgres/
+
+# Или синхронизируем всю директорию
+rclone sync /var/backups/postgres remote:my-backups-bucket/postgres/
+
+
+**20. Чеклист: минимальный production-мониторинг**
+Что должно быть настроено на каждом production-сервере. Это минимум, не идеал — но уже кратно лучше чем ничего:
+
+- UptimeRobot на главный URL
+Внешний мониторинг доступности. Настраивается за 2 минуты, работает бесплатно.
+
+- Telegram-уведомления о падении
+Моментальный алерт в телефон когда сервис недоступен больше 5 минут.
+
+- Ежедневный автобэкап базы данных
+Cron-задача каждую ночь. Файлы хранятся минимум 7 дней.
+
+- Копия бэкапов в облачном хранилище
+Правило 3-2-1. Хотя бы Yandex Object Storage или Backblaze B2.
++
+- Grafana + Prometheus (опционально)
+Для проектов с нагрузкой — метрики CPU/RAM/диска помогают предсказывать проблемы.
+
+
+**21. Security**
+Пиши код с учётом требований безопасности: используй параметризованные запросы, секреты только через os.getenv(), добавляй типизацию и docstrings. 
+Структурируй код по принципу Single Responsibility. 
+Добавь пагинацию для всех эндпоинтов, возвращающих списки. После написания укажи, что нужно проверить в code review.

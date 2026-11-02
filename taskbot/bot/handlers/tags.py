@@ -64,7 +64,8 @@ async def cmd_list_tags(message: Message):
                 headers={"X-Bot-Secret": config.BOT_SECRET}
             )
             response.raise_for_status()
-            tags = response.json()
+            # Ответ пагинированный: {"items": [...], "total": N, ...}
+            tags = response.json()["items"]
 
             if not tags:
                 await message.answer("🏷️ У вас нет тегов")

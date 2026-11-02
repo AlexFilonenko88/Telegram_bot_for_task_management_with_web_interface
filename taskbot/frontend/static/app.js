@@ -35,9 +35,13 @@ async function loadData() {
 }
 
 async function loadTasks() {
-    const response = await fetch(`${API_URL}/api/tasks?user_id=${currentUserId}`);
+    // API пагинирован: {"items": [...], "total": N, "limit": L, "offset": O}
+    const response = await fetch(
+        `${API_URL}/api/tasks?user_id=${currentUserId}&limit=100`
+    );
     if (!response.ok) throw new Error('Не удалось загрузить задачи');
-    allTasks = await response.json();
+    const page = await response.json();
+    allTasks = page.items;
     renderTasks(allTasks);
 }
 

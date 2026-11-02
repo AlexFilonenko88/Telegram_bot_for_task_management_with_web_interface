@@ -64,7 +64,8 @@ async def cmd_list_categories(message: Message):
                 headers={"X-Bot-Secret": config.BOT_SECRET}
             )
             response.raise_for_status()
-            categories = response.json()
+            # Ответ пагинированный: {"items": [...], "total": N, ...}
+            categories = response.json()["items"]
 
             if not categories:
                 await message.answer("📁 У вас нет категорий")

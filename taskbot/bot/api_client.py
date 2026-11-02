@@ -23,15 +23,20 @@ class APIClient:
             response.raise_for_status()
             return response.json()
 
-    async def get_tasks(self, user_id: int) -> List[dict]:
+    async def get_tasks(self, user_id: int, limit: int = 100, offset: int = 0) -> List[dict]:
+        """Постраничный список задач пользователя.
+
+        Returns:
+            Элементы страницы (поле items пагинированного ответа).
+        """
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self.base_url}/api/tasks",
-                params={"user_id": user_id},
+                params={"user_id": user_id, "limit": limit, "offset": offset},
                 headers=self.headers
             )
             response.raise_for_status()
-            return response.json()
+            return response.json()["items"]
 
     async def create_task(self, title: str, description: Optional[str], user_id: int) -> dict:
         async with httpx.AsyncClient() as client:
