@@ -1,3 +1,5 @@
+import html
+
 import httpx
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
@@ -34,7 +36,7 @@ async def process_team_name(message: Message, state: FSMContext):
             )
             response.raise_for_status()
             result = response.json()
-            await message.answer(f"✅ Команда <b>{result['name']}</b> создана! ID команды: {result['id']}", parse_mode="HTML")
+            await message.answer(f"✅ Команда <b>{html.escape(result['name'])}</b> создана! ID команды: {result['id']}", parse_mode="HTML")
     except Exception as e:
         await message.answer(f"❌ Ошибка при создании команды: {str(e)}")
 
@@ -82,12 +84,13 @@ async def cmd_team_list(message: types.Message):
                 return
 
             user = message.from_user
-            text = f"👤 <b>{user.first_name or user.username}</b>\n\n"
+            # Пользовательский текст экранируем: parse_mode="HTML".
+            text = f"👤 <b>{html.escape(user.first_name or user.username or '')}</b>\n\n"
             text += f"Ваши задачи:\n"
             for task in tasks:
                 status = "✅" if task["is_done"] else "⏳"
-                desc = f"\n📝 {task['description']}" if task["description"] else ""
-                text += f"{status} <b>{task['id']}</b>. {task['title']}{desc}\n"
+                desc = f"\n📝 {html.escape(task['description'])}" if task["description"] else ""
+                text += f"{status} <b>{task['id']}</b>. {html.escape(task['title'])}{desc}\n"
 
             await message.answer(text, parse_mode="HTML")
     except Exception as e:

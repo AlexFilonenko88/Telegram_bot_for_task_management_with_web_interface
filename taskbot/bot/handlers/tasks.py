@@ -1,3 +1,5 @@
+import html
+
 import httpx
 from aiogram import Router, F, types
 from aiogram.types import Message
@@ -34,8 +36,10 @@ async def cmd_list(message: types.Message):
             text = "📋 Ваши активные задачи:\n\n"
             for task in active_tasks:
                 status = "✅" if task["is_done"] else "⏳"
-                desc = f"\n📝 {task['description']}" if task["description"] else ""
-                text += f"{status} <b>{task['id']}</b>. {task['title']}{desc}\n"
+                # Экранируем пользовательский текст: parse_mode="HTML" ломается
+                # (Telegram отклонит сообщение) или внедрит разметку без этого.
+                desc = f"\n📝 {html.escape(task['description'])}" if task["description"] else ""
+                text += f"{status} <b>{task['id']}</b>. {html.escape(task['title'])}{desc}\n"
 
             await message.answer(text, parse_mode="HTML")
     except Exception as e:
@@ -62,8 +66,10 @@ async def cmd_list_all(message: types.Message):
             text = "📋 Все ваши задачи:\n\n"
             for task in tasks:
                 status = "✅" if task["is_done"] else "⏳"
-                desc = f"\n📝 {task['description']}" if task["description"] else ""
-                text += f"{status} <b>{task['id']}</b>. {task['title']}{desc}\n"
+                # Экранируем пользовательский текст: parse_mode="HTML" ломается
+                # (Telegram отклонит сообщение) или внедрит разметку без этого.
+                desc = f"\n📝 {html.escape(task['description'])}" if task["description"] else ""
+                text += f"{status} <b>{task['id']}</b>. {html.escape(task['title'])}{desc}\n"
 
             await message.answer(text, parse_mode="HTML")
     except Exception as e:
