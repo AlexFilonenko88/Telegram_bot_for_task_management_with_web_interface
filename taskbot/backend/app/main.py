@@ -91,6 +91,12 @@ async def verify_bot_secret(request: Request, call_next):
     if path in PUBLIC_PATHS or path.startswith("/static"):
         return await call_next(request)
 
+    # CORS preflight: OPTIONS не несёт ни данных, ни кастомных заголовков
+    # (браузер их не отправляет), сайд-эффектов нет. Пропускаем — ответ
+    # сформирует CORSMiddleware (для чужих Origin он вернёт 400).
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
     # Анонимное чтение задач для веб-интерфейса (без мутаций).
     if request.method == "GET" and path.startswith("/api/tasks"):
         return await call_next(request)
