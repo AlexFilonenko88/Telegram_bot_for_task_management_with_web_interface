@@ -70,11 +70,12 @@ async def cmd_team_list(message: types.Message):
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{config.API_URL}/api/tasks",
-                params={"user_id": user_id},
+                params={"user_id": user_id, "limit": 100},
                 headers={"X-Bot-Secret": config.BOT_SECRET}
             )
             response.raise_for_status()
-            tasks = response.json()
+            # Ответ пагинированный: {"items": [...], "total": N, ...}
+            tasks = response.json()["items"]
 
             if not tasks:
                 await message.answer("📋 У вас нет задач.")

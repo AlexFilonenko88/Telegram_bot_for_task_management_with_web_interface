@@ -15,11 +15,12 @@ async def cmd_list(message: types.Message):
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{config.API_URL}/api/tasks",
-                params={"user_id": user_id},
+                params={"user_id": user_id, "limit": 100},
                 headers={"X-Bot-Secret": config.BOT_SECRET}
             )
             response.raise_for_status()
-            tasks = response.json()
+            # Ответ пагинированный: {"items": [...], "total": N, ...}
+            tasks = response.json()["items"]
 
             if not tasks:
                 await message.answer("📋 У вас нет активных задач.")
@@ -48,11 +49,11 @@ async def cmd_list_all(message: types.Message):
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{config.API_URL}/api/tasks",
-                params={"user_id": user_id},
+                params={"user_id": user_id, "limit": 100},
                 headers={"X-Bot-Secret": config.BOT_SECRET}
             )
             response.raise_for_status()
-            tasks = response.json()
+            tasks = response.json()["items"]
 
             if not tasks:
                 await message.answer("📋 У вас нет задач.")
@@ -134,16 +135,27 @@ async def cmd_stats(message: types.Message):
     try:
         user_id = message.from_user.id
         async with httpx.AsyncClient() as client:
+            headers = {"X-Bot-Secret": config.BOT_SECRET}
+            base_url = f"{config.API_URL}/api/tasks"
+
+            # Счётчики берём из поля total пагинированного ответа:
+            # limit=1 => сервер делает только COUNT, список не передаётся.
             response = await client.get(
-                f"{config.API_URL}/api/tasks",
-                params={"user_id": user_id},
-                headers={"X-Bot-Secret": config.BOT_SECRET}
+                base_url,
+                params={"user_id": user_id, "limit": 1},
+                headers=headers
             )
             response.raise_for_status()
-            tasks = response.json()
+            total = response.json()["total"]
 
-            total = len(tasks)
-            done = len([t for t in tasks if t["is_done"]])
+            response = await client.get(
+                base_url,
+                params={"user_id": user_id, "limit": 1, "is_done": "true"},
+                headers=headers
+            )
+            response.raise_for_status()
+            done = response.json()["total"]
+
             active = total - done
             percentage = (done / total * 100) if total > 0 else 0
 
