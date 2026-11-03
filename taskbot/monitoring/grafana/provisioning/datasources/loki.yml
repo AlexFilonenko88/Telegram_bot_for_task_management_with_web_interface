@@ -1,0 +1,15 @@
+# =============================================================================
+# Автопровижининг datasource в Grafana: при первом старте Grafana сама
+# добавит Loki как источник данных — вручную через UI подключать не нужно.
+# Файл монтируется в /etc/grafana/provisioning/datasources/ (см. compose).
+# =============================================================================
+
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy                  # Grafana ходит в Loki сама (сервер-сервер)
+    url: http://loki:3100          # имя сервиса из docker-compose
+    isDefault: true                # datasource по умолчанию в Explore
+    editable: false
