@@ -1,6 +1,6 @@
 # =============================================================================
 # Смоук-тесты для CI (GitHub Actions, п.16): проверяют, что приложение
-# импортируется, собирается и отвечает на базовые запросы.
+# импортируется, стартует и отдаёт основные эндпоинты.
 # Полные тесты API добавляются по мере развития проекта в этой же папке.
 # =============================================================================
 
@@ -11,19 +11,24 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_app_imports_and_has_routes():
-    """Приложение создаётся и содержит основные маршруты."""
-    # Не у всех объектов app.routes есть атрибут path (в FastAPI 0.162
-    # включённые роутеры — _IncludedRouter), поэтому фильтруем через getattr.
-    routes = {r.path for r in app.routes if getattr(r, "path", None)}
-    assert "/openapi.json" in routes
-    assert any(path.startswith("/api/tasks") for path in routes), (
-        "Маршруты задач /api/tasks не зарегистрированы"
-    )
-
-
 def test_openapi_schema_reachable():
     """Swagger-схема отдаётся без ошибок (быстрый признак битого импорта схем)."""
     response = client.get("/openapi.json")
     assert response.status_code == 200
     assert "openapi" in response.json()
+
+
+def test_tasks_routes_registered():
+    """Маршруты задач /api/tasks зарегистрированы и видны в API.
+
+    В FastAPI 0.162 включённые роутеры лежат в app.routes как вложенные
+    _IncludedRouter (без атрибута path), поэтому реальные пути проверяем
+    по OpenAPI-схеме — это фактическая поверхность API, которую видит
+    и Swagger, и клиенты.
+    """
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    paths = response.json()["paths"]
+    assert any(path.startswith("/api/tasks") for path in paths), (
+        f"Маршруты /api/tasks не зарегистрированы; доступные пути: {sorted(paths)}"
+    )
