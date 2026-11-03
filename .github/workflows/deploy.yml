@@ -102,6 +102,17 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    # Деплой пропускается (статус skipped, а не failure), пока не заданы ВСЕ
+    # секреты. Без этого ssh получал пустой -p и падал с "Bad port '-o'".
+    # После настройки secrets в Settings -> Secrets and variables -> Actions
+    # деплой включится автоматически на следующем push в master.
+    #   SSH_HOST, SSH_USER, SSH_PRIVATE_KEY, SSH_PORT, GHCR_TOKEN
+    if: >
+      secrets.SSH_HOST != '' &&
+      secrets.SSH_USER != '' &&
+      secrets.SSH_PRIVATE_KEY != '' &&
+      secrets.SSH_PORT != '' &&
+      secrets.GHCR_TOKEN != ''
     env:
       # Приложение на сервере: docker-compose.yml лежит здесь,
       # .env — на уровень выше (env_file: ../.env в compose).
