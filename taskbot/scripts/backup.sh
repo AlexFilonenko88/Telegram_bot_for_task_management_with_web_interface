@@ -59,7 +59,14 @@ DATE="$(date +"%Y-%m-%d_%H-%M-%S")"
 BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_${DATE}.sql.gz"
 
 log()  { echo "$(date '+%Y-%m-%d %H:%M:%S') $*"; }
-fail() { log "ERROR — $*" >&2; exit 1; }
+fail() {
+    log "ERROR — $*" >&2
+    # Алерт в Telegram (п.20): о сбое бэкапа надо узнать утром, а не когда
+    # понадобится восстановление. Не настроен/упал — молча: backup важнее.
+    "$(dirname "$0")/notify_telegram.sh" \
+        "<b>TaskBot backup FAILED</b> на $(hostname): $*" > /dev/null 2>&1 || true
+    exit 1
+}
 
 # --- Шаг 1: бэкап ----------------------------------------------------------------
 
