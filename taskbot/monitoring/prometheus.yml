@@ -1,0 +1,27 @@
+# =============================================================================
+# Конфигурация Prometheus — сбор метрик сервера (п.18).
+# Монтируется сервисом prometheus из docker-compose.yml:
+#   -config.file=/etc/prometheus/prometheus.yml
+# =============================================================================
+
+global:
+  # Интервал опроса целей: node-exporter должен собираться каждые 15 секунд
+  # (требование п.18).
+  scrape_interval: 15s
+  # Таймаут одного опроса: если цель не ответила за 10с — попытка провалилась.
+  scrape_timeout: 10s
+  evaluation_interval: 15s   # как часто вычислять rule-запросы (алерты и т.п.)
+
+scrape_configs:
+  # --- Метрики сервера: CPU, RAM, диск, сеть через node-exporter ---------------
+  # node-exporter — имя сервиса из docker-compose (внутри сети tasknet).
+  - job_name: node-exporter
+    # Prometheus сам ходит на http://node-exporter:9100/metrics
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # --- Сам Prometheus: свой /metrics тоже собирает -----------------------------
+  # Полезно для графика "здоров сам мониторинг" (scrape_duration_seconds).
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
