@@ -16,6 +16,11 @@ services:
 
   # --- Приложение: FastAPI (образ собирается из нашего Dockerfile) -----------
   app:
+    # Имя образа совпадает с тем, что пушит GitHub Actions (п.16):
+    #   - локально `docker compose build` тегирует собранное этим именем;
+    #   - на сервере `docker compose pull app` скачивает образ из ghcr.io
+    #     (имя в GHCR — только строчными буквами).
+    image: ghcr.io/alexfilonenko88/taskbot-api:latest
     build:
       context: .              # контекст — taskbot/ (backend + frontend/static)
       dockerfile: Dockerfile
