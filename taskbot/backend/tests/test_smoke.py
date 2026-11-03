@@ -13,7 +13,9 @@ client = TestClient(app)
 
 def test_app_imports_and_has_routes():
     """Приложение создаётся и содержит основные маршруты."""
-    routes = {r.path for r in app.routes}
+    # Не у всех объектов app.routes есть атрибут path (в FastAPI 0.162
+    # включённые роутеры — _IncludedRouter), поэтому фильтруем через getattr.
+    routes = {r.path for r in app.routes if getattr(r, "path", None)}
     assert "/openapi.json" in routes
     assert any(path.startswith("/api/tasks") for path in routes), (
         "Маршруты задач /api/tasks не зарегистрированы"
