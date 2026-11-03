@@ -1,0 +1,15 @@
+# =============================================================================
+# Автопровижининг datasource в Grafana (п.18): при старте Grafana сама
+# добавит Prometheus — метрики сервера появятся без ручных настроек в UI.
+# Лежит рядом с loki.yml (п.17) в одной примонтированной папке provisioning.
+# =============================================================================
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090    # имя сервиса из docker-compose
+    isDefault: false               # default — Loki (логи), Prometheus вторым
+    editable: false

@@ -110,12 +110,46 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Datasource Loki подключается автоматически при первом старте
-      # (provisioning — см. monitoring/grafana/provisioning/datasources/loki.yml)
+      # Datasources Loki (п.17) и Prometheus (п.18) подключаются автоматически
+      # при первом старте: вся папка provisioning смонтирована в Grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana-data:/var/lib/grafana  # дашборды и настройки переживают рестарт
     depends_on:
       - loki
+    restart: always
+    networks:
+      - tasknet
+
+  # --- Prometheus: сбор и хранение метрик (п.18) --------------------------------
+  # Опрашивает node-exporter каждые 15с (monitoring/prometheus.yml),
+  # данные в volume prometheus-data — переживают перезапуск.
+  # Порт 9090 наружу не публикуем: доступ к данным — через Grafana.
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: taskbot-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    restart: always
+    networks:
+      - tasknet
+
+  # --- node-exporter: метрики самого сервера (п.18) ------------------------------
+  # Отдаёт CPU/RAM/диск/сеть хоста на http://node-exporter:9100/metrics.
+  # Монтирует /proc, /sys и / хоста ТОЛЬКО НА ЧТЕНИЕ — это официальный
+  # способ node-exporter видеть реальные ресурсы машины из контейнера.
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: taskbot-node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    # Пути внутри контейнера, куда смонтированы файловые системы хоста
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
     restart: always
     networks:
       - tasknet
@@ -126,6 +160,7 @@ volumes:
   pgdata:     # том с данными PostgreSQL
   loki-data:  # том с логами Loki
   grafana-data: # том с данными Grafana
+  prometheus-data: # том с метриками Prometheus (п.18)
 
 networks:
   tasknet:  # общая сеть: app видит db по имени сервиса "db", promtail -> loki
