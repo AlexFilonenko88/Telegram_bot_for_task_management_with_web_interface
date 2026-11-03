@@ -1,0 +1,79 @@
+# =============================================================================
+# Systemd-юнит: автозапуск docker compose (TaskBot) при загрузке сервера.
+#
+# Приложение находится в /home/deploy/myapp (docker-compose.yml + .env).
+# Установка (см. systemd/SETUP.md):
+#   sudo cp taskbot.service /etc/systemd/system/taskbot.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now taskbot.service
+#
+# ВАЖНО: в самом docker-compose.yml (п.13) у обоих сервисов уже стоит
+# restart: always — Docker сам поднимает контейнеры при загрузке демона.
+# Этот юнит добавляет поверх того:
+#   - явный порядок запуска: строго ПОСЛЕ готовности docker.service;
+#   - восстановление, если compose-проект остановлен/упал целиком;
+#   - единое место управления: systemctl start/stop taskbot.
+# =============================================================================
+
+[Unit]
+# Человекочитаемое описание: видно в systemctl status и systemctl list-units.
+Description=TaskBot: docker compose (FastAPI + PostgreSQL)
+
+# --- Порядок и зависимости запуска -------------------------------------------
+# After: стартовать после docker.service. Гарантирует ПОРЯДОК (docker будет
+# запущен раньше нас), но НЕ гарантирует, что docker запустится успешно.
+After=network-online.target docker.service
+
+# Wants + Requires — два уровня зависимости:
+#   Wants=docker.service — если docker не смог стартовать, мы всё равно
+#                          попробуемся (мягкая зависимость);
+#   Requires=docker.service — если docker упал ПОСЛЕ нашего старта, systemd
+#                             остановит и нас (жёсткая зависимость).
+# Берём Requires: без работающего docker наш compose всё равно мёртв.
+Requires=docker.service
+
+# network-online ждём, чтобы compose мог подтянуть образы из registry,
+# если их нет локально (при загрузке сервера сеть может подниматься дольше).
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# oneshot: команда выполняется один раз и завершается, а не висит процессом.
+# compose up -d поднимает контейнеры в фоне и выходит — процесс демона не нужен.
+# RemainAfterExit=yes держит юнит в состоянии "active" после выхода команды —
+# иначе systemd посчитает сервис "умершим" и может дергать Restart.
+
+# Рабочая директория проекта: compose ищет docker-compose.yml и .env здесь.
+# Environment может перебиваться compose-файлом, поэтому пути абсолютные.
+WorkingDirectory=/home/deploy/myapp
+
+# --- Запуск -------------------------------------------------------------------
+# --wait: docker compose блокируется, пока контейнеры не станут healthy
+# (у db и app healthcheck из п.13) — статус сервиса честно отражает готовность.
+# Если контейнеры не поднялись — exit code != 0, systemd увидит сбой.
+ExecStart=/usr/bin/docker compose up -d --wait
+
+# --- Остановка ----------------------------------------------------------------
+# down (а не stop): удаляем контейнеры, НО данные остаются в volume pgdata.
+ExecStop=/usr/bin/docker compose down
+
+# --- Перезапуск при сбое -------------------------------------------------------
+# on-failure: перезапускать, если ExecStart вернул ошибку (например, упал
+# во время старта). После неудачной попытки ждём 10 секунд перед следующей.
+Restart=on-failure
+RestartSec=10s
+
+# Таймаут остановки: на systemctl stop даём БД 40 секунд корректно завершиться
+# (checkpoint PostgreSQL может занять время), после чего systemd пошлёт SIGKILL.
+TimeoutStopSec=40s
+
+# --- Логирование через journald ------------------------------------------------
+# По умолчанию output уже уходит в journald; раскомментированные строки
+# фиксируют это явно (так же смотрится `journalctl -u taskbot`).
+# StandardOutput=journal
+# StandardError=journal
+
+[Install]
+# multi-user.target — штатный уровень "сервер загружен, сеть есть":
+# юнит стартует автоматически при загрузке системы.
+WantedBy=multi-user.target
