@@ -1,0 +1,44 @@
+# =============================================================================
+# Конфигурация Loki — хранилище логов (как Prometheus, только для логов).
+# Используется сервисом loki из docker-compose.yml (п.17).
+# Монолитный режим (single binary) — достаточно для небольшого проекта.
+# =============================================================================
+
+auth_enabled: false
+# Внутри приватной docker-сети аутентификация не нужна; наружу порт 3100
+# не публикуется (нет ports в compose) — доступ только из сети tasknet.
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki              # сюда монтируется volume loki-data
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks   # сжатые чанки логов
+      rules_directory: /loki/rules     # правила recording/marking
+  replication_factor: 1           # один инстанс — репликация не нужна
+  ring:
+    kvstore:
+      store: inmemory             # кольцо инстансов в памяти (одиночный режим)
+
+schema_config:
+  configs:
+    # Схема v13 + tsdb — актуальная рекомендация Loki для новых инсталляций.
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # Хранение логов 7 дней: старее — автоматически удаляется.
+  retention_period: 168h
+
+# -------------------------------------------------------------------
+# Ротация самих файлов контейнеров (то, что Promtail читает) задаётся
+# НЕ здесь, а logging-драйвером docker в docker-compose.yml:
+#   max-size: 10m, max-file: 3 — иначе /var/lib/docker распухнет.
+# -------------------------------------------------------------------

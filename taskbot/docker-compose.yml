@@ -69,11 +69,64 @@ services:
     networks:
       - tasknet
 
+  # --- Loki: хранилище логов (п.17) -------------------------------------------
+  # Все контейнеры присылают сюда логи через Promtail; просмотр — в Grafana.
+  loki:
+    image: grafana/loki:3.4.2
+    container_name: taskbot-loki
+    # Конфиг монтируется read-only (:ro) — контейнер не может его изменить.
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki           # чанки и индексы переживают пересоздание
+    # Порт 3100 наружу НЕ публикуем: Loki доступен только из сети tasknet.
+    restart: always
+    networks:
+      - tasknet
+
+  # --- Promtail: агент сбора логов контейнеров (п.17) ---------------------------
+  # Через docker.sock находит все контейнеры и читает их лог-файлы,
+  # через сеть tasknet отправляет в Loki.
+  promtail:
+    image: grafana/promtail:3.4.2
+    container_name: taskbot-promtail
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      # Docker API: service discovery контейнеров
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Лог-файлы контейнеров: Promtail читает их напрямую с диска хоста
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      - loki
+    restart: always
+    networks:
+      - tasknet
+
+  # --- Grafana: веб-интерфейс для просмотра логов (п.17) -------------------------
+  # http://localhost:3000 (логин/пароль admin/admin — сменить после входа).
+  grafana:
+    image: grafana/grafana:11.5.2
+    container_name: taskbot-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      # Datasource Loki подключается автоматически при первом старте
+      # (provisioning — см. monitoring/grafana/provisioning/datasources/loki.yml)
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana  # дашборды и настройки переживают рестарт
+    depends_on:
+      - loki
+    restart: always
+    networks:
+      - tasknet
+
 # --- Именованные сущности ------------------------------------------------------
 
 volumes:
-  pgdata:   # том с данными PostgreSQL
+  pgdata:     # том с данными PostgreSQL
+  loki-data:  # том с логами Loki
+  grafana-data: # том с данными Grafana
 
 networks:
-  tasknet:  # общая сеть: app видит db по имени сервиса "db"
+  tasknet:  # общая сеть: app видит db по имени сервиса "db", promtail -> loki
     driver: bridge

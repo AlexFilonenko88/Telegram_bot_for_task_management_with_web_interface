@@ -1,0 +1,45 @@
+# =============================================================================
+# Конфигурация Promtail — агент, который читает логи контейнеров
+# (через docker socket) и отправляет их в Loki.
+# Используется сервисом promtail из docker-compose.yml (п.17).
+# =============================================================================
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0             # gRPC не нужен — отключаем
+
+# Позиции (offset) прочитанных файлов: после рестарта Promtail продолжает
+# с того же места, логи не дублируются и не теряются.
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  # Адрес Loki по имени сервиса в сети tasknet.
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Docker Service Discovery: Promtail сам находит все запущенные контейнеры
+  # (в т.ч. новые после compose up) и читает их json-логи из
+  # /var/lib/docker/containers/. Монтировать каждый контейнер не нужно.
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s      # опрашивать список контейнеров раз в 5 секунд
+
+    relabel_configs:
+      # Метка container: имя контейнера без ведущего "/" (taskbot-app, taskbot-db...)
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: "container"
+
+      # Метка service: имя сервиса из docker-compose (app, db, loki, grafana...)
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: "service"
+
+      # Метка compose_project: имя compose-проекта (папка запуска).
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: "compose_project"
+
+      # Метка stream: stdout или stderr — удобно фильтровать ошибки.
+      - source_labels: ["__meta_docker_container_log_stream"]
+        target_label: "stream"
